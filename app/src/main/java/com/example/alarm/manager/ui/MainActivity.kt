@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.dev.daemon.helper.DaemonHelper
 import com.example.alarm.manager.R
 
 class MainActivity : AppCompatActivity() {
@@ -25,11 +24,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun initView() {
         findViewById<View>(R.id.btn_ignore).setOnClickListener {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                intent.data = Uri.parse("package:$packageName")
-                startActivity(intent)
-            }
+            ignoreBatteryOptimizations()
         }
     }
+
+    private fun ignoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+        }
+    }
+
 }

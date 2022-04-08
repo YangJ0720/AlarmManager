@@ -53,9 +53,15 @@ object DaemonHelper {
     }
 
     fun restartService(context: Context, service: Class<out Service?>) {
-        val pendingIntent = PendingIntent.getService(context, 1, Intent(context, service).apply {
-            `package` = context.packageName
-        }, PendingIntent.FLAG_ONE_SHOT)
+        val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.getService(context, 1, Intent(context, service).apply {
+                `package` = context.packageName
+            }, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE)
+        } else {
+            PendingIntent.getService(context, 1, Intent(context, service).apply {
+                `package` = context.packageName
+            }, PendingIntent.FLAG_ONE_SHOT)
+        }
         (context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.set(
             AlarmManager.ELAPSED_REALTIME,
             SystemClock.elapsedRealtime() + DaemonUtil.INTERVAL_TIME,

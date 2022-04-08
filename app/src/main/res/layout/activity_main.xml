@@ -7,6 +7,22 @@
     android:orientation="vertical"
     tools:context=".ui.MainActivity">
 
+    <ImageButton
+        android:id="@+id/ib_on"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:padding="25dp"
+        android:src="@drawable/acy" />
+
+    <ImageButton
+        android:id="@+id/ib_off"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:padding="25dp"
+        android:src="@drawable/acz" />
+
     <Button
         android:id="@+id/btn_ignore"
         android:layout_width="match_parent"
