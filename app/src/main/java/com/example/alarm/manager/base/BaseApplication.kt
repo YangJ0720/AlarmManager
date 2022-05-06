@@ -1,13 +1,15 @@
 package com.example.alarm.manager.base
 
 import android.app.Application
-import com.dev.daemon.helper.DaemonHelper
-import com.example.alarm.manager.service.DaemonService
+import com.example.alarm.manager.service.AlarmService
+import com.xdandroid.hellodaemon.DaemonEnv
 
-internal class BaseApplication : Application() {
+class BaseApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        DaemonHelper.setup(this, DaemonService::class.java)
+        val cls = AlarmService::class.java
+        DaemonEnv.initialize(this, cls, DaemonEnv.DEFAULT_WAKE_UP_INTERVAL)
+        DaemonEnv.startServiceMayBind(cls)
     }
 }

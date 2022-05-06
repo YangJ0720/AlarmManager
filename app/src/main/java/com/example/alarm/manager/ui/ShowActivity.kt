@@ -2,14 +2,15 @@ package com.example.alarm.manager.ui
 
 import android.app.Activity
 import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
 import android.content.ServiceConnection
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.Gravity
 import com.example.alarm.manager.R
-import com.example.alarm.manager.service.DaemonService
+import com.example.alarm.manager.service.AlarmService
 import com.example.alarm.manager.watcher.RefWatcher
 
 class ShowActivity : Activity() {
@@ -18,10 +19,11 @@ class ShowActivity : Activity() {
         private const val TAG = "ShowActivity"
     }
 
-    private lateinit var mBinder: DaemonService.MainBinder
     private val mConnect = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            mBinder = binder as DaemonService.MainBinder
+            val binder = binder as AlarmService.MainBinder
+            val currentTimeMillis = binder.refresh()
+            Log.i(TAG, "currentTimeMillis = $currentTimeMillis")
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -32,9 +34,17 @@ class ShowActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_show)
-        //
+        initData()
+        initView()
+        initService()
+        Log.i(TAG, "onCreate")
+    }
+
+    private fun initData() {
         RefWatcher.attach(this)
-        //
+    }
+
+    private fun initView() {
         val window = window
         window.setGravity(Gravity.LEFT or Gravity.TOP)
         val attributes = window.attributes
@@ -43,10 +53,11 @@ class ShowActivity : Activity() {
         attributes.width = 10
         attributes.height = 10
         window.attributes = attributes
-        //
-        mBinder.refresh()
-        //
-        Log.i(TAG, "onCreate")
+    }
+
+    private fun initService() {
+        val intent = Intent(this, AlarmService::class.java)
+        bindService(intent, mConnect, Context.BIND_AUTO_CREATE)
     }
 
     override fun onDestroy() {

@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.alarm.manager">
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
@@ -12,6 +13,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AlarmManager">
+
         <activity
             android:name=".ui.ShowActivity"
             android:excludeFromRecents="true"
@@ -20,9 +22,13 @@
             android:theme="@style/LiveActivityTheme" />
 
         <service
-            android:name=".service.DaemonService"
+            android:name=".service.AlarmService"
             android:enabled="true"
             android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+            </intent-filter>
         </service>
 
         <activity
