@@ -23,7 +23,6 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "AlarmReceiver"
         private const val CHANNEL_ID = "id"
-        const val RECEIVER_ACTION_MEDIA = "receiver_action_media"
         const val RECEIVER_ACTION_NOTIFY = "receiver_action_notify"
     }
 
@@ -31,9 +30,6 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.i(TAG, "onReceive -> action = ${intent.action}")
         when (intent.action) {
-            RECEIVER_ACTION_MEDIA -> {
-                startForegroundService(context, true)
-            }
             RECEIVER_ACTION_NOTIFY -> {
                 sendNotification(context)
             }

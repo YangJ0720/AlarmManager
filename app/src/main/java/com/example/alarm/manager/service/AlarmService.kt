@@ -1,7 +1,6 @@
 package com.example.alarm.manager.service
 
 import android.annotation.SuppressLint
-import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -12,20 +11,22 @@ import com.example.alarm.manager.receiver.AlarmReceiver
 import com.example.alarm.manager.utils.FileUtils
 import com.xdandroid.hellodaemon.AbsWorkService
 import java.io.IOException
-import java.util.*
 
 class AlarmService : AbsWorkService() {
 
     companion object {
         const val EXTRA_NAME = "startForegroundService"
+
         //
         private const val TAG = "AlarmService"
-        private const val DELAY = 30
+        private const val WHAT_NOTIFICATION = 1
+        private const val DELAY_NOTIFICATION = 30000L
         private var sIsRunning = false
     }
 
     private var mPlayer: MediaPlayer? = null
     private val mBinder: MainBinder = MainBinder()
+    private lateinit var mHandler: AlarmHandler
     private lateinit var mReceiver: AlarmReceiver
 
     override fun onCreate() {
@@ -33,6 +34,8 @@ class AlarmService : AbsWorkService() {
         Log.i(TAG, "onCreate")
         //
         FileUtils.writeFileToSDCard(this, assets.open("di.ogg"))
+        // handler
+        this.mHandler = AlarmHandler(Looper.getMainLooper())
         // receiver
         val receiver = AlarmReceiver()
         val filter = IntentFilter()
@@ -67,7 +70,13 @@ class AlarmService : AbsWorkService() {
     }
 
     override fun onBind(intent: Intent?, alwaysNull: Void?): IBinder {
+        Log.i(TAG, "onBind")
         return mBinder
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        Log.i(TAG, "onUnbind")
+        return super.onUnbind(intent)
     }
 
     override fun shouldStopService(intent: Intent?, flags: Int, startId: Int): Boolean {
@@ -120,37 +129,36 @@ class AlarmService : AbsWorkService() {
                 Log.e(TAG, "e = ${e.message}")
             }
         }
-        //
-        setAlarm(this)
     }
 
     private fun stopPlayer() {
         mPlayer?.stop()
     }
 
-    private fun setAlarm(context: Context) {
-        val name = Context.ALARM_SERVICE
-        val manager: AlarmManager = context.getSystemService(name) as AlarmManager
-        //
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.SECOND, DELAY)
-        val date = calendar.time
-        val requestCode = 0
-        val intent = Intent(context, AlarmReceiver::class.java)
-        intent.action = AlarmReceiver.RECEIVER_ACTION_MEDIA
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_MUTABLE
-        } else {
-            PendingIntent.FLAG_CANCEL_CURRENT
-        }
-        val operation = PendingIntent.getBroadcast(context, requestCode, intent, flags)
-        val info = AlarmManager.AlarmClockInfo(date.time, operation)
-        manager.setAlarmClock(info, operation)
-    }
-
     inner class MainBinder : Binder() {
         fun refresh(): Long {
             return System.currentTimeMillis()
+        }
+    }
+
+    inner class AlarmHandler(looper: Looper) : Handler(looper) {
+
+        init {
+            sendHandler(delayMillis = 0)
+        }
+
+        private fun sendHandler(delayMillis: Long = DELAY_NOTIFICATION) {
+            val msg = Message.obtain()
+            msg.what = WHAT_NOTIFICATION
+            sendMessageDelayed(msg, delayMillis)
+        }
+
+        override fun handleMessage(msg: Message) {
+            super.handleMessage(msg)
+            Log.i(TAG, "handleMessage")
+            startPlayer()
+            //
+            sendHandler()
         }
     }
 
