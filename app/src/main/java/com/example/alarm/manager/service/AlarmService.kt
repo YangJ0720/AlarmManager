@@ -8,14 +8,10 @@ import android.content.IntentFilter
 import android.media.MediaPlayer
 import android.os.*
 import android.util.Log
-import androidx.core.app.NotificationCompat
-import com.example.alarm.manager.R
 import com.example.alarm.manager.receiver.AlarmReceiver
-import com.example.alarm.manager.ui.MainActivity
 import com.example.alarm.manager.utils.FileUtils
 import com.xdandroid.hellodaemon.AbsWorkService
 import java.io.IOException
-import java.text.SimpleDateFormat
 import java.util.*
 
 class AlarmService : AbsWorkService() {
@@ -24,23 +20,19 @@ class AlarmService : AbsWorkService() {
         const val EXTRA_NAME = "startForegroundService"
         //
         private const val TAG = "AlarmService"
-        private const val CHANNEL_ID = "id"
-        private const val WHAT_NOTIFICATION = 1
-        private const val DELAY_NOTIFICATION = 30000L
+        private const val DELAY = 30
         private var sIsRunning = false
     }
 
     private var mPlayer: MediaPlayer? = null
     private val mBinder: MainBinder = MainBinder()
-    private lateinit var mHandler: AlarmHandler
     private lateinit var mReceiver: AlarmReceiver
 
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "onCreate")
+        //
         FileUtils.writeFileToSDCard(this, assets.open("di.ogg"))
-        // handler
-        this.mHandler = AlarmHandler(Looper.getMainLooper())
         // receiver
         val receiver = AlarmReceiver()
         val filter = IntentFilter()
@@ -52,16 +44,16 @@ class AlarmService : AbsWorkService() {
 
     @SuppressLint("InvalidWakeLockTag")
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        val value = intent.getBooleanExtra(EXTRA_NAME, false)
+        val value = intent.getBooleanExtra(EXTRA_NAME, true)
         if (value) {
-            player()
+            startPlayer()
         } else {
             val manager = getSystemService(Context.POWER_SERVICE) as PowerManager
             Log.i(TAG, "manager.isInteractive = ${manager.isInteractive}")
             if (manager.isInteractive) {
-                mPlayer?.stop()
+                stopPlayer()
             } else {
-                player()
+                startPlayer()
             }
         }
         Log.i(TAG, "onStartCommand")
@@ -103,7 +95,10 @@ class AlarmService : AbsWorkService() {
         Log.i(TAG, "onServiceKilled")
     }
 
-    private fun player() {
+    /**
+     * 播放音乐
+     */
+    private fun startPlayer() {
         // 播放音乐
         if (mPlayer == null) {
             mPlayer = MediaPlayer()
@@ -119,76 +114,43 @@ class AlarmService : AbsWorkService() {
                     it.stop()
                 }
                 it.prepareAsync()
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "e = ${e.message}")
             } catch (e: IOException) {
+                Log.e(TAG, "e = ${e.message}")
+            } catch (e: IllegalStateException) {
                 Log.e(TAG, "e = ${e.message}")
             }
         }
+        //
+        setAlarm(this)
     }
 
-    private fun sendNotification() {
-        // 获取通知管理器
-        val name = Context.NOTIFICATION_SERVICE
-        val manager = getSystemService(name) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // 创建通知渠道
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, TAG, importance)
-            manager.createNotificationChannel(channel)
-        }
+    private fun stopPlayer() {
+        mPlayer?.stop()
+    }
+
+    private fun setAlarm(context: Context) {
+        val name = Context.ALARM_SERVICE
+        val manager: AlarmManager = context.getSystemService(name) as AlarmManager
         //
-        val intent = Intent(this, MainActivity::class.java)
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.SECOND, DELAY)
+        val date = calendar.time
+        val requestCode = 0
+        val intent = Intent(context, AlarmReceiver::class.java)
+        intent.action = AlarmReceiver.RECEIVER_ACTION_MEDIA
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_MUTABLE
         } else {
             PendingIntent.FLAG_CANCEL_CURRENT
         }
-        val pending = PendingIntent.getActivity(this, 0, intent, flags)
-        // 创建通知
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(getContentText())
-            .setAutoCancel(true)
-            .setContentIntent(pending)
-            .setDefaults(Notification.DEFAULT_SOUND)
-            .build()
-        manager.notify(100, notification)
-        // 播放音乐
-        player()
-    }
-
-    private fun getContentText(): String {
-        val pattern = "yyyy-MM-dd HH:mm:ss"
-        val format = SimpleDateFormat(pattern, Locale.getDefault())
-        return format.format(Date())
+        val operation = PendingIntent.getBroadcast(context, requestCode, intent, flags)
+        val info = AlarmManager.AlarmClockInfo(date.time, operation)
+        manager.setAlarmClock(info, operation)
     }
 
     inner class MainBinder : Binder() {
         fun refresh(): Long {
             return System.currentTimeMillis()
-        }
-    }
-
-    inner class AlarmHandler(looper: Looper) : Handler(looper) {
-
-        init {
-            sendHandler()
-        }
-
-        private fun sendHandler() {
-            val msg = Message.obtain()
-            msg.what = WHAT_NOTIFICATION
-            sendMessageDelayed(msg, DELAY_NOTIFICATION)
-        }
-
-        override fun handleMessage(msg: Message) {
-            super.handleMessage(msg)
-            Log.i(TAG, "handleMessage")
-            sendNotification()
-            //
-            sendHandler()
         }
     }
 

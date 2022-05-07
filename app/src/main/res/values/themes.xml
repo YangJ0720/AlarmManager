@@ -14,10 +14,4 @@
         <!-- Customize your theme here. -->
     </style>
 
-    <!-- ShowActivity -->
-    <style name="LiveActivityTheme">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowIsTranslucent">true</item>
-    </style>
 </resources>

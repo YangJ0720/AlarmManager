@@ -9,15 +9,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.alarm.manager.R
 import com.example.alarm.manager.service.AlarmService
 import com.example.alarm.manager.ui.MainActivity
-import com.example.alarm.manager.ui.ShowActivity
-import com.example.alarm.manager.watcher.RefWatcher
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,39 +23,25 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "AlarmReceiver"
         private const val CHANNEL_ID = "id"
-        const val RECEIVER_ACTION = "receiver_action"
+        const val RECEIVER_ACTION_MEDIA = "receiver_action_media"
+        const val RECEIVER_ACTION_NOTIFY = "receiver_action_notify"
     }
 
     @SuppressLint("InvalidWakeLockTag")
     override fun onReceive(context: Context, intent: Intent) {
         Log.i(TAG, "onReceive -> action = ${intent.action}")
         when (intent.action) {
-            RECEIVER_ACTION -> {
+            RECEIVER_ACTION_MEDIA -> {
+                startForegroundService(context, true)
+            }
+            RECEIVER_ACTION_NOTIFY -> {
                 sendNotification(context)
             }
             Intent.ACTION_SCREEN_ON -> {
-                val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-                val lock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
-                if (lock.isHeld) {
-                    lock.release()
-                }
-                //
                 startForegroundService(context, false)
-                //
-                RefWatcher.detach()
             }
             Intent.ACTION_SCREEN_OFF -> {
-                val manager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-                val lock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG)
-                if (!lock.isHeld) {
-                    lock.acquire()
-                }
-                //
                 startForegroundService(context, true)
-                //
-                val i = Intent(context, ShowActivity::class.java)
-                i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(i)
             }
             else -> {}
         }
@@ -76,7 +59,11 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         //
         val intent = Intent(context, MainActivity::class.java)
-        val flags = PendingIntent.FLAG_CANCEL_CURRENT
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_MUTABLE
+        } else {
+            PendingIntent.FLAG_CANCEL_CURRENT
+        }
         val pending = PendingIntent.getActivity(context, 0, intent, flags)
         // 创建通知
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
